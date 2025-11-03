@@ -4,7 +4,7 @@ import HomeScreen from "../components/homePage/HomePage";
 import AddCustomerPage from "../components/homePage/addCustomer/addCustomerPage/AddCustomerPage";
 import InvoiceForm from "../components/homePage/generateInvoice/invoice/InvoiceForm";
 import AddProductPage from "../components/homePage/addProduct/addProductPage/AddProductPage";
-
+import CreditForm from "../components/homePage/credit/creditform/CreditForm"
 const Stack = createNativeStackNavigator();
 export type RootStackParamList = {
   InvoiceForm: undefined;
@@ -17,6 +17,7 @@ const MainNavigation = () => {
     phone: '',
     firm: '',
     balance: '',
+    address: "",
   });
 
   const [productData, setProductData] = useState({
@@ -24,7 +25,7 @@ const MainNavigation = () => {
     price: '',
   });
 
-  
+
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
@@ -42,6 +43,12 @@ const MainNavigation = () => {
         name="InvoiceForm"
         component={InvoiceForm}
         options={{ title: 'Generate Invoice' }}
+      />
+
+      <Stack.Screen
+        name="CreditForm"
+        component={CreditForm}
+        options={{ title: 'Generate Credit' }}
       />
 
       <Stack.Screen name="AddProduct" options={{ title: 'Add Product' }}>

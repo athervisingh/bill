@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, ScrollView, Text, StyleSheet, StatusBar, Dimensions, Alert, TouchableOpacity } from 'react-native';
 import axios from 'axios';
-import InvoiceSection from './invoiceHeader/InvoiceHeader';
 import CustomerSection from './customerSection/CustomerSection';
 import ProductSection from './productSection/ProductSection';
+import { WebView } from 'react-native-webview';
 
 
 import TaxSection from './taxSection/TaxSection';
@@ -28,11 +28,11 @@ export type TransportOption = { name: string; cost: string };
 const Divider = () => <View style={styles.divider} />;
 
 const InvoiceForm: React.FC = () => {
-
-  const [invoiceData, setInvoiceData] = useState({
+  const [invoiceData, setInvoiceData] = useState<{ date: string; invoiceId: number | string }>({
     date: new Date().toISOString().split('T')[0],
     invoiceId: `INV-${Date.now()}`,
   });
+
 
   const [customerData, setCustomerData] = useState<CustomerData>({
     id: undefined,
@@ -65,7 +65,7 @@ const InvoiceForm: React.FC = () => {
   const packingTotal = packingCharges.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const transportTotal = transportOptions.reduce((sum, t) => sum + Number(t.cost || 0), 0);
   const grandTotal = afterTaxTotal + packingTotal + transportTotal;
-
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const handleDiscountChange = (data: { amountDiscount: number; percentDiscount: number }) => {
     setAmountDiscount(data.amountDiscount);
     setPercentDiscount(data.percentDiscount);
@@ -81,6 +81,36 @@ const InvoiceForm: React.FC = () => {
     setCustomerData((prev) => ({ ...prev, id: !isNaN(parsedId) ? parsedId : undefined }));
     console.log('Customer selected:', id);
   };
+
+
+
+  const handleDownloadInvoice = async () => {
+    if (!invoiceData.invoiceId) {
+      Alert.alert('Error', 'Please save the invoice first.');
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `https://mkqfdpqq-3000.inc1.devtunnels.ms/invoices/invoice/generate/${invoiceData.invoiceId}`
+      );
+
+      const html = res.data;
+      if (!html || typeof html !== 'string') {
+        Alert.alert('Error', 'Invalid HTML response.');
+        return;
+      }
+
+      // ✅ just show the HTML in WebView
+      setHtmlContent(html);
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to load invoice HTML.');
+    }
+  };
+
+
+
 
   // ---- Handle Save ----
   const handleSaveInvoice = async () => {
@@ -111,12 +141,20 @@ const InvoiceForm: React.FC = () => {
       transportationLineItems: transportOptions.map((t) => ({ name: t.name, amount: Number(t.cost || 0) })),
     };
 
-    console.log('Final Payload:', JSON.stringify(payload, null, 2));
-
     try {
       const res = await axios.post('https://mkqfdpqq-3000.inc1.devtunnels.ms/invoices', payload);
-      Alert.alert('Success', 'Invoice saved successfully.');
-      console.log('Server Response:', res.data);
+      const invoiceIdFromBackend = res.data?.data?.id;
+
+      if (invoiceIdFromBackend) {
+        setInvoiceData((prev) => ({
+          ...prev,
+          invoiceId: invoiceIdFromBackend, // store numeric invoice id
+        }));
+        Alert.alert('Success', `Invoice saved. ID: ${invoiceIdFromBackend}`);
+        console.log('Saved Invoice ID:', invoiceIdFromBackend);
+      } else {
+        Alert.alert('Error', 'Invoice ID not found in response.');
+      }
     } catch (err: any) {
       Alert.alert('Error', 'Failed to save invoice.');
     }
@@ -124,77 +162,87 @@ const InvoiceForm: React.FC = () => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#4A90E2" />
-      <ScrollView style={styles.wrapper} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>📋 Professional Invoice Generator</Text>
-          <Text style={styles.headerSubtitle}>Create detailed and professional invoices with ease</Text>
-        </View>
 
-        <InvoiceSection invoiceData={invoiceData} setInvoiceData={setInvoiceData} />
-        <Divider />
-
-        <CustomerSection
-          customerData={customerData}
-          setCustomerData={setCustomerData}
-          resetTrigger={false}
-          onSelectCustomerId={handleSelectCustomerId}
+      {htmlContent ? (
+        <WebView
+          originWhitelist={['*']}
+          source={{ html: htmlContent }}
+          style={{ flex: 1 }}
         />
-        <Divider />
+      ) : (
+        <>
+          <StatusBar barStyle="light-content" backgroundColor="#4A90E2" />
+          <ScrollView style={styles.wrapper} contentContainerStyle={styles.contentContainer}>
+            <CustomerSection
+              customerData={customerData}
+              setCustomerData={setCustomerData}
+              resetTrigger={false}
+              onSelectCustomerId={handleSelectCustomerId}
+            />
+            <Divider />
 
-        <ProductSection products={products} setProducts={setProducts} onLineItemsChange={() => { }} />
-        <Divider />
+            <ProductSection products={products} setProducts={setProducts} onLineItemsChange={() => { }} />
+            <Divider />
 
-        <DiscountSection previousTotal={productsTotal} onDiscountChange={handleDiscountChange} />
-        <Divider />
+            <DiscountSection previousTotal={productsTotal} onDiscountChange={handleDiscountChange} />
+            <Divider />
 
-        <TaxSection
-          taxLineItems={taxes}
-          setTaxLineItems={setTaxes}
-          productsTotal={afterDiscountTotal}
-          grandTotal={afterTaxTotal}
-          onTaxChange={({ taxLineItems, totalTax }) =>
-            console.log('Updated Tax:', taxLineItems, 'Total Tax:', totalTax)
-          }
-        />
-        <Divider />
+            <TaxSection
+              taxLineItems={taxes}
+              setTaxLineItems={setTaxes}
+              productsTotal={afterDiscountTotal}
+              grandTotal={afterTaxTotal}
+              onTaxChange={({ taxLineItems, totalTax }) =>
+                console.log('Updated Tax:', taxLineItems, 'Total Tax:', totalTax)
+              }
+            />
+            <Divider />
 
-        <PackingSection packingCharges={packingCharges} setPackingCharges={setPackingCharges} previousTotal={afterTaxTotal} />
-        <Divider />
+            <PackingSection packingCharges={packingCharges} setPackingCharges={setPackingCharges} previousTotal={afterTaxTotal} />
+            <Divider />
 
-        <TransportSection
-          transportOptions={transportOptions}
-          setTransportOptions={setTransportOptions}
-          previousTotal={afterTaxTotal + packingTotal}
-          onTransportChange={({ transportationLineItems, totalAmt }) =>
-            console.log('Transport Data:', transportationLineItems, 'Total:', totalAmt)
-          }
-        />
-        <Divider />
+            <TransportSection
+              transportOptions={transportOptions}
+              setTransportOptions={setTransportOptions}
+              previousTotal={afterTaxTotal + packingTotal}
+              onTransportChange={({ transportationLineItems, totalAmt }) =>
+                console.log('Transport Data:', transportationLineItems, 'Total:', totalAmt)
+              }
+            />
+            <Divider />
 
-        <TotalSection
-          products={products}
-          taxes={taxes}
-          discounts={[{ value: String(percentDiscount > 0 ? percentDiscount : amountDiscount), type: percentDiscount > 0 ? '%' : '₹' }]}
-          packingCharges={packingCharges}
-          transportOptions={transportOptions}
-          amountPaid={amountPaid}
-          setAmountPaid={setAmountPaid}
-          onPaidChange={handlePaidChange}
-        />
+            <TotalSection
+              products={products}
+              taxes={taxes}
+              discounts={[{ value: String(percentDiscount > 0 ? percentDiscount : amountDiscount), type: percentDiscount > 0 ? '%' : '₹' }]}
+              packingCharges={packingCharges}
+              transportOptions={transportOptions}
+              amountPaid={amountPaid}
+              setAmountPaid={setAmountPaid}
+              onPaidChange={handlePaidChange}
+            />
 
-        <View style={styles.buttonContainer}>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: '#4CAF50' }]}
+                onPress={handleSaveInvoice}
+              >
+                <Text style={styles.buttonText}>💾 Save</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#4CAF50' }]}
-            onPress={handleSaveInvoice}
-          >
-            <Text style={styles.buttonText}>💾 Save</Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: '#2196F3' }]}
+                onPress={handleDownloadInvoice}
+              >
+                <Text style={styles.buttonText}>⬇️ Download</Text>
+              </TouchableOpacity>
+            </View>
 
-        <View style={{ height: 50 }} />
-      </ScrollView>
+            <View style={{ height: 50 }} />
+          </ScrollView>
+        </>
+      )}
+
     </>
   );
 };

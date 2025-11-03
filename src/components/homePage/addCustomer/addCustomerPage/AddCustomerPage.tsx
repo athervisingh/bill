@@ -10,6 +10,7 @@ interface CustomerData {
   phone: string;
   firm: string;
   balance: string;
+  address: string;
 }
 
 interface AddCustomerPageProps {
@@ -21,7 +22,7 @@ const AddCustomerPage: React.FC<AddCustomerPageProps> = ({ customerData, setCust
   const navigation = useNavigation();
 
   const validateFields = () => {
-    const { name, phone, firm } = customerData;
+    const { name, phone, firm, address } = customerData;
 
     if (!name.trim()) {
       Alert.alert('Validation Error', 'Please enter customer name.');
@@ -43,61 +44,50 @@ const AddCustomerPage: React.FC<AddCustomerPageProps> = ({ customerData, setCust
       return false;
     }
 
+    if (address.trim().length > 50) {
+      Alert.alert('Validation Error', 'Address cannot exceed 50 characters.');
+      return false;
+    }
+
     return true;
   };
 
-const handleSave = async () => {
-  if (!validateFields()) return;
+  const handleSave = async () => {
+    if (!validateFields()) return;
 
-  try {
-    // ✅ Prepare data
-    const payload = {
-      name: customerData.name.trim(),
-      phone: customerData.phone.trim(),
-      firm: customerData.firm.trim(),
-      balance: Number(customerData.balance) || 0,
-    };
+    try {
+      const payload = {
+        name: customerData.name.trim(),
+        phone: customerData.phone.trim(),
+        firm: customerData.firm.trim(),
+        balance: Number(customerData.balance) || 0,
+        address: customerData.address.trim(),
+      };
 
-    console.log('Sending data:', payload);
+      console.log('Sending data:', payload);
 
-    // ✅ API call
-    const response = await fetch('https://mkqfdpqq-3000.inc1.devtunnels.ms/customers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    // ✅ Debug logs
-    const text = await response.text();
-    console.log('Response status:', response.status);
-    console.log('Response body:', text);
-
-    // ✅ Check for 201 created
-    if (response.status === 201) {
-      Alert.alert('Success', 'Customer saved successfully!');
-
-      // Clear form
-      setCustomerData({
-        name: '',
-        phone: '',
-        firm: '',
-        balance: '',
+      const response = await fetch('https://mkqfdpqq-3000.inc1.devtunnels.ms/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      // Navigate back
-      navigation.goBack();
-    } else {
-      throw new Error(`Failed to save customer: ${text}`);
+      const text = await response.text();
+      console.log('Response status:', response.status);
+      console.log('Response body:', text);
+
+      if (response.status === 201) {
+        Alert.alert('Success', 'Customer saved successfully!');
+        setCustomerData({ name: '', phone: '', firm: '', balance: '', address: '' });
+        navigation.goBack();
+      } else {
+        throw new Error(`Failed to save customer: ${text}`);
+      }
+    } catch (error: any) {
+      console.error('Save error:', error.message);
+      Alert.alert('Error', error.message || 'Failed to save customer');
     }
-  } catch (error: any) {
-    console.error('Save error:', error.message);
-    Alert.alert('Error', error.message || 'Failed to save customer');
-  }
-};
-
-
+  };
 
   return (
     <View style={styles.card}>
@@ -136,6 +126,17 @@ const handleSave = async () => {
       </View>
 
       <View style={styles.inputContainer}>
+        <Text style={styles.label}>Address</Text>
+        <TextInput
+          style={styles.input}
+          value={customerData?.address || ''}
+          onChangeText={(text) => setCustomerData(prev => ({ ...prev, address: text }))}
+          placeholder="123 Main Street, City"
+          maxLength={50}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
         <Text style={styles.label}>Balance (optional)</Text>
         <TextInput
           style={styles.input}
@@ -146,7 +147,6 @@ const handleSave = async () => {
         />
       </View>
 
-      {/* Save Button */}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveText}>Save</Text>
       </TouchableOpacity>
@@ -155,18 +155,14 @@ const handleSave = async () => {
 };
 
 const styles = StyleSheet.create({
-  card: {
-    padding: scale(16),
-  },
+  card: { padding: scale(16) },
   header: {
     fontSize: scale(18),
     fontWeight: '700',
     marginBottom: scale(16),
     color: '#2C3E50',
   },
-  inputContainer: {
-    marginBottom: scale(12),
-  },
+  inputContainer: { marginBottom: scale(12) },
   label: {
     fontSize: scale(14),
     fontWeight: '600',

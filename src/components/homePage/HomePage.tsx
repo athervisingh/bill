@@ -3,6 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import AddCustomerButton from './addCustomer/AddCustomerButton';
 import GenerateInvoiceButton from './generateInvoice/GenerateInvoiceButton';
 import  AddProductButton  from './addProduct/AddProductButton';
+import GenerateCreditButton from './credit/GenerateCreditButton';
+
 
 const HomeScreen: React.FC = () => {
   return (
@@ -10,6 +12,7 @@ const HomeScreen: React.FC = () => {
       <AddCustomerButton />
       <GenerateInvoiceButton />
       <AddProductButton />
+      <GenerateCreditButton/>
     </View>
   );
 };
