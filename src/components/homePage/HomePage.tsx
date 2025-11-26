@@ -4,6 +4,7 @@ import AddCustomerButton from './addCustomer/AddCustomerButton';
 import GenerateInvoiceButton from './generateInvoice/GenerateInvoiceButton';
 import  AddProductButton  from './addProduct/AddProductButton';
 import GenerateCreditButton from './credit/GenerateCreditButton';
+import EditProductButton from './editProject/EditProductButton';
 
 
 const HomeScreen: React.FC = () => {
@@ -12,6 +13,7 @@ const HomeScreen: React.FC = () => {
       <AddCustomerButton />
       <GenerateInvoiceButton />
       <AddProductButton />
+      <EditProductButton/>
       <GenerateCreditButton/>
     </View>
   );

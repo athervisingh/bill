@@ -5,6 +5,7 @@ import AddCustomerPage from "../components/homePage/addCustomer/addCustomerPage/
 import InvoiceForm from "../components/homePage/generateInvoice/invoice/InvoiceForm";
 import AddProductPage from "../components/homePage/addProduct/addProductPage/AddProductPage";
 import CreditForm from "../components/homePage/credit/creditform/CreditForm"
+import EditProductPage from "../components/homePage/editProject/editProductPage/EditProductPage";
 const Stack = createNativeStackNavigator();
 export type RootStackParamList = {
   InvoiceForm: undefined;
@@ -48,6 +49,11 @@ const MainNavigation = () => {
       <Stack.Screen
         name="CreditForm"
         component={CreditForm}
+        options={{ title: 'Generate Credit' }}
+      />
+      <Stack.Screen
+        name="EditProduct"
+        component={EditProductPage}
         options={{ title: 'Generate Credit' }}
       />
 
